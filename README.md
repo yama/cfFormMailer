@@ -20,6 +20,7 @@ cfFormMailerは、MODX Evolutionで動作する高機能なメールフォーム
 - ✅ **HTMLメール送信**対応
 - ✅ **動的送信先変更**（選択肢によって管理者宛先を切り替え）
 - ✅ **データベース保存**（cfFormDBモジュール連携）
+- ✅ **デバッグモード**（メール送信の詳細ログ記録）
 - ✅ **カスタム検証ルール**・フィルター追加可能
 - ✅ **PHP 7.4～8.4完全対応**
 
@@ -32,14 +33,18 @@ cfFormMailerは、MODX Evolutionで動作する高機能なメールフォーム
 ```bash
 # 1. ファイルをアップロード
 /assets/snippets/cfFormMailer/ に以下をアップロード
-  - class.cfFormMailer.inc.php
-  - bootstrap.php
-  - additionalMethods.inc.php (オプション)
+  includes/
+    - class.cfFormMailer.inc.php
+    - bootstrap.php
+  extras/
+    - additionalMethods.inc.php (オプション)
+  forms/
+    - sample/ (サンプルテンプレート)
 
 # 2. スニペット登録
-MODXまたはの管理画面で新規スニペット作成:
+MODXの管理画面で新規スニペット作成:
   スニペット名: cfFormMailer
-  コード: snippet.cfFormMailer.php の内容をコピー&ペースト
+  コード: install-code.php の内容をコピー&ペースト
 
 # 3. 設定ファイル作成
 forms/sample/config.with_comment.ini を参考に設定ファイルを作成
@@ -69,6 +74,7 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 - [⚡ 機能解説](docs/FEATURES.md) - 入力検証、フィルター、CAPTCHA等
 - [🔧 カスタマイズガイド](docs/CUSTOMIZATION.md) - 独自検証・フィルターの追加方法
 - [📤 ファイルアップロード](docs/FILE_UPLOAD.md) - アップロード機能の詳細
+- [🐛 デバッグモード](docs/DEBUG.md) - メール送信のトラブルシューティング
 
 ### リファクタリング（v2.0準備）
 

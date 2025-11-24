@@ -40,6 +40,9 @@ cfFormMailerの全バージョンの変更履歴を記録します。
 
 ### Changed
 - バージョン番号を1.6.1から1.7.0に更新
+- **ディレクトリ構成の大幅変更**
+  - `assets/snippets/cfFormMailer/` → `src/`（ソースコード）
+  - `assets/snippets/cfFormMailer/forms/` → `forms/`（フォーム定義）
 
 ### Fixed
 - セッションからのファイルアップロード処理の改善
