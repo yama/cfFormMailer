@@ -611,6 +611,8 @@ class Class_cfFormMailer
 
     private function sendAdminMail()
     {
+        $this->debugLog('管理者宛メール送信処理を開始');
+
         $reply_to = $this->getAutoReplyAddress();
 
         // 管理者宛メールの本文生成
@@ -688,6 +690,31 @@ class Class_cfFormMailer
             }
         }
 
+        // デバッグログ: メール送信情報
+        if ($this->config('debug_mode')) {
+            $debug_info = "管理者宛メール送信を試行\n";
+            $debug_info .= "宛先: " . implode(', ', $admin_addresses) . "\n";
+            if ($this->config('admin_mail_cc')) {
+                $debug_info .= "CC: " . $this->config('admin_mail_cc') . "\n";
+            }
+            if ($this->config('admin_mail_bcc')) {
+                $debug_info .= "BCC: " . $this->config('admin_mail_bcc') . "\n";
+            }
+            $debug_info .= "件名: " . $pm->Subject . "\n";
+            $debug_info .= "送信元: " . $pm->From . "\n";
+            if ($reply_to) {
+                $debug_info .= "Reply-To: " . $reply_to . "\n";
+            }
+            $debug_info .= "文字コード: " . ($this->config('mail_charset') ?: 'iso-2022-jp') . "\n";
+            $debug_info .= "HTMLメール: " . ($this->config('admin_ishtml') ? '有効' : '無効') . "\n";
+            if ($upload_flag) {
+                $debug_info .= "添付ファイル: あり\n";
+            }
+            $body_preview = mb_substr(strip_tags($pm->Body), 0, 100);
+            $debug_info .= "本文プレビュー: " . $body_preview . "...";
+            $this->debugLog($debug_info);
+        }
+
         $sent = $pm->Send();
         if (!$sent) {
             $errormsg = 'メール送信に失敗しました::' . $pm->ErrorInfo;
@@ -700,6 +727,8 @@ class Class_cfFormMailer
             evo()->logEvent(1, 3, $errormsg . $vars);
             return false;
         }
+
+        $this->debugLog('管理者宛メール送信に成功しました');
         return true;
     }
 
@@ -708,8 +737,11 @@ class Class_cfFormMailer
         // 自動返信
         $reply_to = $this->getAutoReplyAddress();
         if (!$this->config('auto_reply') || !$reply_to) {
+            $this->debugLog('自動返信メールは無効、またはReply-Toアドレスが取得できませんでした');
             return true;
         }
+
+        $this->debugLog('自動返信メール送信処理を開始');
 
         evo()->loadExtension('MODxMailer');
         $pm = evo()->mail;
@@ -759,6 +791,7 @@ class Class_cfFormMailer
         }
 
         $uploaded = sessionv('_cf_uploaded');
+        $has_uploaded_attachment = false;
         if (is_array($uploaded)) {
             foreach ($uploaded as $attach_file) {
                 if (!is_file($attach_file['path'])) {
@@ -772,8 +805,30 @@ class Class_cfFormMailer
                         $this->config('charset')
                     )
                 );
+                $has_uploaded_attachment = true;
             }
         }
+
+        // デバッグログ: メール送信情報
+        if ($this->config('debug_mode')) {
+            $debug_info = "自動返信メール送信を試行\n";
+            $debug_info .= "宛先: " . $reply_to . "\n";
+            $debug_info .= "件名: " . $pm->Subject . "\n";
+            $debug_info .= "送信元: " . $pm->From . "\n";
+            if ($this->config('reply_fromname')) {
+                $debug_info .= "送信者名: " . $this->config('reply_fromname') . "\n";
+            }
+            $debug_info .= "文字コード: " . ($this->config('mail_charset') ?: 'iso-2022-jp') . "\n";
+            $debug_info .= "HTMLメール: " . ($this->config('reply_ishtml') ? '有効' : '無効') . "\n";
+            $debug_info .= "テンプレート: " . $template_filename . "\n";
+            if ($this->config('attach_file') || $has_uploaded_attachment) {
+                $debug_info .= "添付ファイル: あり\n";
+            }
+            $body_preview = mb_substr(strip_tags($pm->Body), 0, 100);
+            $debug_info .= "本文プレビュー: " . $body_preview . "...";
+            $this->debugLog($debug_info);
+        }
+
         $sent = $pm->Send();
 
         if (!$sent) {
@@ -785,6 +840,8 @@ class Class_cfFormMailer
             evo()->logEvent(1, 3, $errormsg . $vars);
             return false;
         }
+
+        $this->debugLog('自動返信メール送信に成功しました');
         return true;
     }
 
@@ -1648,6 +1705,21 @@ class Class_cfFormMailer
     public function getError()
     {
         return $this->convertText($this->error_message);
+    }
+
+    /**
+     * デバッグログを出力
+     *
+     * @access private
+     * @param  string $message ログメッセージ
+     * @param  int $type イベントタイプ (1=Information, 2=Warning, 3=Error)
+     * @return void
+     */
+    private function debugLog($message, $type = 1)
+    {
+        if ($this->config('debug_mode')) {
+            evo()->logEvent(1, $type, '[cfFormMailer Debug] ' . $message);
+        }
     }
 
     /**
