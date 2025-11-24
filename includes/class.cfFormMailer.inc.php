@@ -719,12 +719,10 @@ class Class_cfFormMailer
         if (!$sent) {
             $errormsg = 'メール送信に失敗しました::' . $pm->ErrorInfo;
             $this->setError($errormsg);
-            $vars = nl2br(
-                evo()->htmlspecialchars(
-                    var_export($pm, true)
-                )
+            $vars = evo()->htmlspecialchars(
+                var_export($pm, true)
             );
-            evo()->logEvent(1, 3, $errormsg . $vars);
+            $this->logEvent(1, 3, $errormsg . "\n" . $vars, 'Admin Mail Error');
             return false;
         }
 
@@ -834,10 +832,10 @@ class Class_cfFormMailer
         if (!$sent) {
             $errormsg = 'メール送信に失敗しました::' . $pm->ErrorInfo;
             $this->setError($errormsg);
-            $vars = nl2br(evo()->htmlspecialchars(
+            $vars = evo()->htmlspecialchars(
                 var_export($pm, true)
-            ));
-            evo()->logEvent(1, 3, $errormsg . $vars);
+            );
+            $this->logEvent(1, 3, $errormsg . "\n" . $vars, 'AutoReply Error');
             return false;
         }
 
@@ -1718,7 +1716,7 @@ class Class_cfFormMailer
     private function debugLog($message, $type = 1)
     {
         if ($this->config('debug_mode')) {
-            evo()->logEvent(1, $type, '[cfFormMailer Debug] ' . $message);
+            $this->logEvent(1, $type, $message, 'Debug');
         }
     }
 
@@ -2032,6 +2030,33 @@ class Class_cfFormMailer
     public function getSystemError()
     {
         return $this->sysError;
+    }
+
+    /**
+     * MODXイベントログに記録（改行をHTMLタグに変換）
+     *
+     * @param int $evtid イベントID（1: 情報）
+     * @param int $type イベントタイプ（1: 情報、2: 警告、3: エラー）
+     * @param string $msg メッセージ（改行コードは自動的に<br>タグに変換される）
+     * @param string $title ログのタイトル（例: 'Debug', 'Mail Error'）
+     * @return void
+     */
+    private function logEvent($evtid, $type, $msg, $title = 'Info')
+    {
+        // 呼び出し元の情報を取得
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+        $caller = $trace[1] ?? [];
+        $file = isset($caller['file']) ? basename($caller['file']) : 'unknown';
+        $line = $caller['line'] ?? '?';
+
+        // メッセージに呼び出し元情報を付加
+        $msg = "[{$file}:{$line}] {$msg}";
+
+        // 改行コード（\n, \r\n, \r）を<br>タグに変換
+        $msg = str_replace(["\r\n", "\r", "\n"], '<br>', $msg);
+
+        // タイトルを指定してログ出力
+        evo()->logEvent($evtid, $type, $msg, "cfFormMailer - {$title}");
     }
 
     /**
