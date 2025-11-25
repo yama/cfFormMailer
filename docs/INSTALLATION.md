@@ -82,85 +82,9 @@ MODX管理画面にログインし、以下の手順でスニペットを作成�
    | **スニペット名** | `cfFormMailer` |
    | **説明** | 高機能メールフォームスニペット |
    | **カテゴリ** | Mail（任意） |
-   | **スニペットコード** | 下記参照 |
+   | **スニペットコード** | `install-code.php`の内容 |
 
-3. **スニペットコード欄**に以下を貼り付け:
-
-```php
-<?php
-/**
- * cfFormMailer
- *
- * @author  Clefarray Factory
- * @version 1.7.0
- */
-
-if ($modx->isBackend()) {
-    return '';
-}
-
-if (!isset($config)) {
-    return '<strong>ERROR!:</strong> 「config」パラメータは必須です';
-}
-
-define('CFM_PATH', MODX_BASE_PATH . 'assets/snippets/cfFormMailer/includes/');
-
-include_once(CFM_PATH . 'class.cfFormMailer.inc.php');
-
-$mf = new Class_cfFormMailer($modx);
-$mf->parseConfig($config);
-
-if ($mf->hasSystemError()) {
-    return '<strong>ERROR!</strong> ' . $mf->getSystemError();
-}
-
-if (is_file(CFM_PATH . '../extras/additionalMethods.inc.php')) {
-    include_once CFM_PATH . '../extras/additionalMethods.inc.php';
-}
-
-if (!postv()) {
-    return $mf->renderForm();
-}
-
-if (postv('return')) {
-    return $mf->renderFormOnBack();
-}
-
-if ($mf->alreadySent()) {
-    return $mf->raiseError('すでに送信しています');
-}
-
-if (postv('_mode') === 'conf') {
-    if(!$mf->validate()) {
-        return $mf->renderFormWithError();
-    }
-    return $mf->renderConfirm();
-}
-
-if (postv('_mode') === 'send') {
-    if (!$mf->isValidToken(postv('_cffm_token'))) {
-        return $mf->raiseError('画面遷移が正常に行われませんでした');
-    }
-    $sent = $mf->sendMail();
-    if (!$sent) {
-        return $mf->raiseError($mf->getError());
-    }
-
-    $mf->cleanUploadedFiles();
-    $mf->storeDataInSession();
-    $mf->storeDB();
-
-    return $mf->renderComplete();
-}
-
-return $mf->renderForm();
-```
-
-4. **保存**をクリック
-
-#### 方法2: ファイルから（v2.0対応）
-
-`install-code.php`の内容をスニペットコード欄にコピー＆ペースト
+3. **保存**をクリック
 
 ---
 
