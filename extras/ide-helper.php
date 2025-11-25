@@ -5,7 +5,7 @@ define('MODX_BASE_PATH', dirname(__FILE__, 3) . '/');
  * 
  * @author  Clefarray Factory
  * @link  http://www.clefarray-web.net/
- * @version 1.6
+ * @version 1.7
  *
  * Documentation: http://www.clefarray-web.net/blog/manual/cfFormMailer_manual.html
  * LICENSE: GNU General Public License (GPL) (http://www.gnu.org/copyleft/gpl.html)
