@@ -218,11 +218,13 @@ chmod 644 /assets/snippets/cfFormMailer/includes/class.upload.php
 #### 3. テンプレートでの使用
 
 **入力画面**:
+
 ```html
 <input type="file" name="photo" valid=":allowtype(gif|jpg|png),allowsize(5000)" />
 ```
 
 **確認画面**:
+
 ```html
 <img src="cfFileView?field=photo" alt="アップロードされた画像" />
 ```
@@ -321,6 +323,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
 **原因と解決策**:
 
 1. **スニペット名が間違っている**
+
    ```php
    # NG
    [!cfformmailer?&config=`myform_config`!]
@@ -330,6 +333,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
    ```
 
 2. **キャッシュが効いている**
+
    ```php
    # NG (キャッシュあり)
    [[cfFormMailer?&config=`myform_config`]]
@@ -339,6 +343,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
    ```
 
 3. **ファイルパスが間違っている**
+
    ```bash
    # ファイルの存在確認
    ls -la /assets/snippets/cfFormMailer/includes/class.cfFormMailer.inc.php
@@ -366,6 +371,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
 **原因と解決策**:
 
 1. **ファイルパスが間違っている**
+
    ```ini
    # config.ini を確認
    tmpl_input = @FILE:forms/myform/web_form.tpl.html
@@ -375,6 +381,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
    ```
 
 2. **パーミッションの問題**
+
    ```bash
    chmod 644 /assets/snippets/cfFormMailer/forms/myform/*.html
    ```
@@ -388,6 +395,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
 **原因と解決策**:
 
 1. **デバッグモードを有効化して調査**
+
    ```ini
    # config.ini
    debug_mode = 1  # デバッグモード有効化
@@ -401,11 +409,13 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
    - 送信者メールアドレス、SMTP設定等を確認
 
 3. **ログを確認**
+
    ```php
    # MODX管理画面 → システム → イベントログ
    ```
 
 4. **テスト用にsend_mailを一時的に無効化**
+
    ```ini
    # config.ini
    send_mail = 0  # メール送信を無効化（テスト用）
@@ -423,6 +433,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
 v1.7.0では部分対応済みです。
 
 一時的な対処:
+
 ```php
 # php.ini
 error_reporting = E_ALL & ~E_DEPRECATED
