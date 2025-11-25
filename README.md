@@ -14,15 +14,14 @@ cfFormMailerは、MODX Evolutionで動作する高機能なメールフォーム
 ## 主な機能
 
 - **豊富な入力検証**（メール、数値、文字数、電話番号、郵便番号など19種類）
-- **CAPTCHA画像認証**によるスパム対策
-- **ファイルアップロード**対応（画像・PDF・Wordなど）
 - **自動返信メール**機能
 - **HTMLメール送信**対応
 - **動的送信先変更**（選択肢によって管理者宛先を切り替え）
-- **データベース保存**（cfFormDBモジュール連携）
 - **デバッグモード**（メール送信の詳細ログ記録）
 - **カスタム検証ルール**・フィルター追加可能
 - **PHP 7.4～8.4完全対応**
+- **データベース保存**（cfFormDBモジュール連携）
+- **ファイルアップロード**対応（画像・PDF・Wordなど）
 
 ---
 
@@ -32,14 +31,8 @@ cfFormMailerは、MODX Evolutionで動作する高機能なメールフォーム
 
 ```bash
 # 1. ファイルをアップロード
-/assets/snippets/cfFormMailer/ に以下をアップロード
-  includes/
-    - class.cfFormMailer.inc.php
-    - bootstrap.php
-  extras/
-    - additionalMethods.inc.php (オプション)
-  forms/
-    - sample/ (サンプルテンプレート)
+プロジェクトの全ファイルをそのままアップロード:
+  → /assets/snippets/cfFormMailer/
 
 # 2. スニペット登録
 MODXの管理画面で新規スニペット作成:
@@ -89,7 +82,7 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 
 ```html
 <!-- 入力画面テンプレート -->
-<form action="[[~[[*id]]]]" method="post">
+<form action="[~id~]" method="post">
   <p>
     <label for="name">お名前 <span class="required">*</span></label>
     <input type="text" name="name" id="name" valid="1" />
@@ -164,7 +157,7 @@ vendor/bin/phpunit
 
 - [GitHub Issues](https://github.com/yama/cfFormMailer/issues)
 - [公式フォーラム](https://modx.jp/)
-- [ブログ：網的脚本実験室](http://www.clefarray-web.net/blog/)
+- [ブログ：網的脚本実験室](https://www.clefarray-web.net/blog/)
 
 ---
 
@@ -179,12 +172,6 @@ cfFormMailerは[GPLライセンス](LICENSE)の下で配布されています。
 **作者**: Clefarray Factory
 **サイト**: [網的脚本実験室](http://www.clefarray-web.net/blog/)
 **MODX公式フォーラム**: https://modx.jp/
-
-### 使用ライブラリ
-
-- [MODX Evolution](https://modx.com/) - CMSフレームワーク
-- [MODxMailer / PHPMailer](https://github.com/PHPMailer/PHPMailer) - メール送信
-- [class.upload.php](http://www.verot.net/php_class_upload.htm) - ファイルアップロード（オプション）
 
 ---
 
