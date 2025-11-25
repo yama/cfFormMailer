@@ -22,6 +22,7 @@ cfFormMailerのインストール手順を説明します。
 - **PHP**: 7.4～8.4（推奨: 8.1以降）
 - **文字コード**: UTF-8
 - **PHP拡張**:
+
   - `mb_string` - マルチバイト文字列処理
   - `session` - セッション管理
   - `gd` または `imagick` - CAPTCHA使用時
@@ -29,10 +30,12 @@ cfFormMailerのインストール手順を説明します。
 ### オプション
 
 - **ファイルアップロード機能**:
+
   - [class.upload.php](http://www.verot.net/php_class_upload.htm) (Colin Verot氏作)
   - `fileinfo` 拡張（推奨）
 
 - **データベース保存機能**:
+
   - cfFormDBモジュール
 
 ---
