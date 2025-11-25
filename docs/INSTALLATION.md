@@ -141,7 +141,7 @@ tmpl_mail_reply = @FILE:forms/myform/mail_autoreply.tpl.txt
 
 最低限、以下の5つのテンプレートが必要です。
 
-```
+```text
 forms/myform/
 ├── config.ini              # 環境設定
 ├── web_form.tpl.html       # 入力画面
@@ -161,13 +161,13 @@ forms/myform/
 
 フォームを表示したいMODXドキュメントに以下のスニペットコールを記述します。
 
-#### ファイル形式の設定を使用する場合:
+#### ファイル形式の設定を使用する場合
 
 ```php
 [!cfFormMailer?&config=`@FILE:forms/myform/config.ini`!]
 ```
 
-#### チャンク形式の設定を使用する場合:
+#### チャンク形式の設定を使用する場合
 
 ```php
 [!cfFormMailer?&config=`myform_config`!]
