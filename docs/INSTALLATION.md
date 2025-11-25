@@ -400,7 +400,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
    # config.ini
    debug_mode = 1  # デバッグモード有効化
    ```
-   
+
    詳細は [🐛 デバッグモード](DEBUG.md) を参照してください。
 
 2. **MODXのメール設定を確認**
