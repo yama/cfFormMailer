@@ -76,15 +76,6 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 - [ファイルアップロード](docs/FILE_UPLOAD.md) - アップロード機能の詳細
 - [デバッグモード](docs/DEBUG.md) - メール送信のトラブルシューティング
 
-### リファクタリング（v2.0準備）
-
-- [リファクタリング提案書](docs/REFACTORING_PROPOSAL.md) - v2.0の設計方針
-- [移行ガイド](docs/MIGRATION_GUIDE.md) - v1.7からv2.0への移行手順
-- [アーキテクチャ設計](docs/ARCHITECTURE.md) - 新アーキテクチャの詳細
-- [コーディング規約](docs/CODING_STANDARDS.md) - 開発者向けガイドライン
-- [テストガイド](docs/TESTING_GUIDE.md) - テスト方針・実装方法
-- [APIリファレンス](docs/API_REFERENCE.md) - 新APIの詳細仕様
-
 ### その他
 
 - [更新履歴](docs/CHANGELOG.md) - バージョンごとの変更内容
@@ -148,16 +139,6 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 
 詳細は [CHANGELOG.md](docs/CHANGELOG.md) をご覧ください。
 
-### 次期バージョン: v2.0 (開発中)
-
-- PHP 7.4～8.4完全対応
-- モダンなアーキテクチャへのリファクタリング
-- 単体テスト90%以上のカバレッジ
-- 完全な型安全性
-- 後方互換性100%維持
-
-詳細は [リファクタリング提案書](docs/REFACTORING_PROPOSAL.md) をご覧ください。
-
 ---
 
 ## 貢献・開発
@@ -169,7 +150,7 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 git clone https://github.com/yama/cfFormMailer.git
 cd cfFormMailer
 
-# Composerの依存関係をインストール（v2.0開発用）
+# 開発に必要なツールをインストール
 composer install
 
 # テストを実行

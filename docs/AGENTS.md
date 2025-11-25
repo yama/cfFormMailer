@@ -27,7 +27,7 @@
 ```yaml
 name: cfFormMailer
 type: MODX Evolution Snippet (Mail Form)
-version: 1.7.0 (stable), 2.0.0 (in development)
+version: 1.7.0
 php: 7.4 - 8.4
 language: PHP
 framework: MODX Evolution
@@ -42,15 +42,6 @@ MODX Evolutionで動作する高機能なメールフォームスニペット。
 ### 現在の状態
 
 - **v1.7.0** (安定版): 2,481行の巨大クラス、15年前の設計
-- **v2.0** (開発中): モダンなアーキテクチャへのリファクタリング中
-
-### リファクタリングの目標
-
-1. **PHP 7.4～8.4完全対応** (型安全、strftime削除等)
-2. **責務別クラス分離** (2,481行 → 100-300行のクラス群)
-3. **テストカバレッジ90%以上**
-4. **100%後方互換性維持**
-5. **モダンなUX/DX** (HTML5標準、Twig、JSON API等)
 
 ---
 
@@ -77,27 +68,9 @@ cfFormMailer/
     └── ...
 ```
 
-**★重要**: `class.cfFormMailer.inc.php` が全てのロジックを含む巨大クラス（リファクタリング対象）
+**★重要**: `class.cfFormMailer.inc.php` が全てのロジックを含む巨大クラス
 
 ---
-
-### 目標の構造 (v2.0)
-
-```
-cfFormMailer/
-├── src/                            # 新しいコード（PSR-4: CfFormMailer\）
-│   ├── Core/
-│   │   ├── FormProcessor.php      # フォーム処理フロー
-│   │   ├── ConfigLoader.php       # 設定管理
-│   │   └── SessionManager.php     # セッション管理
-│   ├── Validation/
-│   │   ├── FormValidator.php      # 検証統括
-│   │   ├── ValidationResult.php   # 検証結果DTO
-│   │   └── Rules/                  # 19個のルールクラス
-│   │       ├── ValidationRuleInterface.php
-│   │       ├── EmailRule.php
-│   │       ├── NumericRule.php
-│   │       └── ...
 │   ├── Mail/
 │   │   ├── MailSender.php
 │   │   ├── AdminMailBuilder.php
@@ -390,46 +363,6 @@ private function _def_email($value, $param, $field)
 }
 ```
 
-#### After (v2.0)
-
-```php
-<?php declare(strict_types=1);
-// src/Validation/Rules/EmailRule.php
-
-namespace CfFormMailer\Validation\Rules;
-
-class EmailRule implements ValidationRuleInterface
-{
-    private string $errorMessage = 'メールアドレスの形式が正しくありません';
-
-    public function validate(mixed $value, array $params): bool
-    {
-        $pattern = "/^(?:[a-z0-9+_-]+?\.)*?[a-z0-9_+-]+?@(?:[a-z0-9_-]+?\.)*?[a-z0-9_-]+?\.[a-z0-9]{2,5}$/i";
-        return (bool) preg_match($pattern, $value);
-    }
-
-    public function transform(mixed $value): string
-    {
-        // 強制的に半角に変換
-        return mb_convert_kana($value, 'a', 'UTF-8');
-    }
-
-    public function getErrorMessage(): string
-    {
-        return $this->errorMessage;
-    }
-}
-```
-
-#### 移行手順
-
-1. ✅ 新しいクラスを作成 (`EmailRule.php`)
-2. ✅ テストを作成 (`EmailRuleTest.php`)
-3. ✅ テストを実行して動作確認
-4. ✅ RuleFactoryに登録
-5. ✅ FormValidatorから利用
-6. ⏳ レガシーコード（`_def_email`）は後方互換のため残す
-
 ---
 
 ## コーディング規約
@@ -704,7 +637,7 @@ class ValidationException extends RuntimeException
 
 ### ⚠️ 後方互換性の維持
 
-**v1.7.x の全ての機能を v2.0 でもサポート必須**
+**後方互換性の維持が重要**
 
 ```php
 // ❌ 削除してはいけない
@@ -780,10 +713,9 @@ graph TD
 
 ### 必読
 
-1. **REFACTORING_PROPOSAL.md** - リファクタリング全体設計
-2. **USER_EXPERIENCE_PROPOSAL.md** - UX/DX改善提案
-3. **FILE_UPLOAD_REDESIGN.md** - ファイルアップロード設計
-4. **MIGRATION_GUIDE.md** - v1.7→v2.0移行手順
+1. **INSTALLATION.md** - インストール手順
+2. **CHANGELOG.md** - 更新履歴
+3. **README.md** - プロジェクト概要
 
 ### その他
 
