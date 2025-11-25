@@ -7,35 +7,6 @@ cfFormMailerの全バージョンの変更履歴を記録します。
 
 ---
 
-## [Unreleased]
-
-### v2.0.0-dev (開発中)
-
-#### Added
-- PHP 7.4～8.4完全対応
-- モダンなアーキテクチャへのリファクタリング
-- 単体テスト90%以上のカバレッジ
-- 完全な型安全性（全メソッド・プロパティに型宣言）
-- Composer対応（PSR-4 autoload）
-- 責務別クラス分離（Validation, Mail, Template, Core）
-- 依存性注入（DI）パターンの導入
-- イベントベースアーキテクチャ
-
-#### Changed
-- 後方互換性100%維持（レガシーラッパー経由）
-- `strftime()` 完全削除（PHP 8.1+対応）
-- 動的プロパティ問題の解消（PHP 8.2対応）
-
-#### Deprecated
-- 関数ベースのカスタム検証（`_validate_*`）→ クラスベースへ移行推奨
-- 関数ベースのフィルター（`_filter_*`）→ クラスベースへ移行推奨
-
-詳細: [REFACTORING_PROPOSAL.md](REFACTORING_PROPOSAL.md)
-
----
-
-## [Released]
-
 ## [1.7.0] - 2025-11-18
 
 ### Changed
