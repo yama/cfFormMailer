@@ -11,22 +11,22 @@ cfFormMailerは、MODX Evolutionで動作する高機能なメールフォーム
 
 ---
 
-## ✨ 主な機能
+## 主な機能
 
-- ✅ **豊富な入力検証**（メール、数値、文字数、電話番号、郵便番号など19種類）
-- ✅ **CAPTCHA画像認証**によるスパム対策
-- ✅ **ファイルアップロード**対応（画像・PDF・Wordなど）
-- ✅ **自動返信メール**機能
-- ✅ **HTMLメール送信**対応
-- ✅ **動的送信先変更**（選択肢によって管理者宛先を切り替え）
-- ✅ **データベース保存**（cfFormDBモジュール連携）
-- ✅ **デバッグモード**（メール送信の詳細ログ記録）
-- ✅ **カスタム検証ルール**・フィルター追加可能
-- ✅ **PHP 7.4～8.4完全対応**
+- **豊富な入力検証**（メール、数値、文字数、電話番号、郵便番号など19種類）
+- **CAPTCHA画像認証**によるスパム対策
+- **ファイルアップロード**対応（画像・PDF・Wordなど）
+- **自動返信メール**機能
+- **HTMLメール送信**対応
+- **動的送信先変更**（選択肢によって管理者宛先を切り替え）
+- **データベース保存**（cfFormDBモジュール連携）
+- **デバッグモード**（メール送信の詳細ログ記録）
+- **カスタム検証ルール**・フィルター追加可能
+- **PHP 7.4～8.4完全対応**
 
 ---
 
-## 📦 クイックスタート
+## クイックスタート
 
 ### インストール
 
@@ -57,42 +57,42 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 [!cfFormMailer?&config=`@FILE:forms/myform/config.ini`!]
 ```
 
-詳細は [📘 インストールガイド](docs/INSTALLATION.md) をご覧ください。
+詳細は [インストールガイド](docs/INSTALLATION.md) をご覧ください。
 
 ---
 
-## 📚 ドキュメント
+## ドキュメント
 
 ### はじめに
 
-- [📘 インストールガイド](docs/INSTALLATION.md) - インストール手順の詳細
-- [⚙️ 環境設定リファレンス](docs/CONFIGURATION.md) - 全設定項目の説明
-- [🎨 テンプレート作成ガイド](docs/TEMPLATE_GUIDE.md) - 入力・確認・完了画面の作り方
+- [インストールガイド](docs/INSTALLATION.md) - インストール手順の詳細
+- [環境設定リファレンス](docs/CONFIGURATION.md) - 全設定項目の説明
+- [テンプレート作成ガイド](docs/TEMPLATE_GUIDE.md) - 入力・確認・完了画面の作り方
 
 ### 機能・仕様
 
-- [⚡ 機能解説](docs/FEATURES.md) - 入力検証、フィルター、CAPTCHA等
-- [🔧 カスタマイズガイド](docs/CUSTOMIZATION.md) - 独自検証・フィルターの追加方法
-- [📤 ファイルアップロード](docs/FILE_UPLOAD.md) - アップロード機能の詳細
-- [🐛 デバッグモード](docs/DEBUG.md) - メール送信のトラブルシューティング
+- [機能解説](docs/FEATURES.md) - 入力検証、フィルター、CAPTCHA等
+- [カスタマイズガイド](docs/CUSTOMIZATION.md) - 独自検証・フィルターの追加方法
+- [ファイルアップロード](docs/FILE_UPLOAD.md) - アップロード機能の詳細
+- [デバッグモード](docs/DEBUG.md) - メール送信のトラブルシューティング
 
 ### リファクタリング（v2.0準備）
 
-- [📋 リファクタリング提案書](docs/REFACTORING_PROPOSAL.md) - v2.0の設計方針
-- [🔄 移行ガイド](docs/MIGRATION_GUIDE.md) - v1.7からv2.0への移行手順
-- [🏗️ アーキテクチャ設計](docs/ARCHITECTURE.md) - 新アーキテクチャの詳細
-- [📝 コーディング規約](docs/CODING_STANDARDS.md) - 開発者向けガイドライン
-- [🧪 テストガイド](docs/TESTING_GUIDE.md) - テスト方針・実装方法
-- [📖 APIリファレンス](docs/API_REFERENCE.md) - 新APIの詳細仕様
+- [リファクタリング提案書](docs/REFACTORING_PROPOSAL.md) - v2.0の設計方針
+- [移行ガイド](docs/MIGRATION_GUIDE.md) - v1.7からv2.0への移行手順
+- [アーキテクチャ設計](docs/ARCHITECTURE.md) - 新アーキテクチャの詳細
+- [コーディング規約](docs/CODING_STANDARDS.md) - 開発者向けガイドライン
+- [テストガイド](docs/TESTING_GUIDE.md) - テスト方針・実装方法
+- [APIリファレンス](docs/API_REFERENCE.md) - 新APIの詳細仕様
 
 ### その他
 
-- [📜 更新履歴](docs/CHANGELOG.md) - バージョンごとの変更内容
-- [❓ FAQ](docs/FAQ.md) - よくある質問と回答
+- [更新履歴](docs/CHANGELOG.md) - バージョンごとの変更内容
+- [FAQ](docs/FAQ.md) - よくある質問と回答
 
 ---
 
-## 🚀 使用例
+## 使用例
 
 ### シンプルなお問い合わせフォーム
 
@@ -128,7 +128,7 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 
 ---
 
-## 🔧 システム要件
+## システム要件
 
 - **MODX Evolution**: 1.0.x以降
 - **PHP**: 7.4～8.4（推奨: 8.1以降）
@@ -137,7 +137,7 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 
 ---
 
-## 📋 バージョン情報
+## バージョン情報
 
 ### 現在のバージョン: v1.7.0 (2025-11-18)
 
@@ -146,7 +146,7 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 - セッションからのファイルアップロード処理の改善
 - 各種バグ修正とコードクリーンアップ
 
-詳細は [📜 CHANGELOG.md](docs/CHANGELOG.md) をご覧ください。
+詳細は [CHANGELOG.md](docs/CHANGELOG.md) をご覧ください。
 
 ### 次期バージョン: v2.0 (開発中)
 
@@ -156,11 +156,11 @@ forms/sample/config.with_comment.ini を参考に設定ファイルを作成
 - 完全な型安全性
 - 後方互換性100%維持
 
-詳細は [📋 リファクタリング提案書](docs/REFACTORING_PROPOSAL.md) をご覧ください。
+詳細は [リファクタリング提案書](docs/REFACTORING_PROPOSAL.md) をご覧ください。
 
 ---
 
-## 🤝 貢献・開発
+## 貢献・開発
 
 ### 開発に参加する
 
@@ -186,13 +186,13 @@ vendor/bin/phpunit
 
 ---
 
-## 📄 ライセンス
+## ライセンス
 
 cfFormMailerは[GPLライセンス](LICENSE)の下で配布されています。
 
 ---
 
-## 👏 クレジット
+## クレジット
 
 **作者**: Clefarray Factory
 **サイト**: [網的脚本実験室](http://www.clefarray-web.net/blog/)
@@ -206,17 +206,13 @@ cfFormMailerは[GPLライセンス](LICENSE)の下で配布されています。
 
 ---
 
-## ⚠️ 免責事項
+## 免責事項
 
 本スクリプトの使用によって生じた損害等について、作者は一切の責任を負わないものとします。ご了承ください。
 
 ---
 
-## 🌟 スターをお願いします！
+## スターをお願いします
 
-cfFormMailerが役に立ったら、ぜひ GitHub で ⭐ をお願いします！
-
----
-
-**Happy Coding! 🎉**
+cfFormMailerが役に立ったら、ぜひ GitHub でスターをお願いします！
 
