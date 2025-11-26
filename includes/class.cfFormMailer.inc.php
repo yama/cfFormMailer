@@ -494,22 +494,25 @@ class Class_cfFormMailer
 
             // テキストボックス
             if ($tag[1] === 'input' && $fieldType === 'text') {
+                $fieldValue = $params[$fieldName] ?? '';
                 if (count($m_value) > 1) {
                     $pat = $m_value[0];
-                    $rep = 'value="' . $this->encodeHTML($params[$fieldName]) . '"';
+                    $rep = 'value="' . $this->encodeHTML($fieldValue) . '"';
                 } else {
                     $pat = $tag[2];
-                    $rep = $tag[2] . ' value="' . $this->encodeHTML($params[$fieldName]) . '"';
+                    $rep = $tag[2] . ' value="' . $this->encodeHTML($fieldValue) . '"';
                 }
                 // チェックボックス
             } elseif ($tag[1] === 'input' && $fieldType === 'checkbox') {
-                if (isset($m_value[2]) && ($m_value[2] == $params[$fieldName] || (is_array($params[$fieldName]) && in_array($m_value[2], $params[$fieldName])))) {
+                $fieldValue = $params[$fieldName] ?? null;
+                if (isset($m_value[2]) && ($m_value[2] == $fieldValue || (is_array($fieldValue) && in_array($m_value[2], $fieldValue)))) {
                     $pat = $tag[2];
                     $rep = $tag[2] . ' checked="checked"';
                 }
                 // ラジオボタン
             } elseif ($tag[1] === 'input' && $fieldType === 'radio') {
-                if (isset($m_value[2]) && $m_value[2] == $params[$fieldName]) {
+                $fieldValue = $params[$fieldName] ?? null;
+                if (isset($m_value[2]) && $m_value[2] == $fieldValue) {
                     $pat = $tag[2];
                     $rep = $tag[2] . ' checked="checked"';
                 }
@@ -526,6 +529,7 @@ class Class_cfFormMailer
                 );
                 if (count($tag_opt) > 1) {
                     $old = $tag[0];
+                    $fieldValue = $params[$fieldName] ?? null;
                     foreach ($tag_opt as $v) {
                         $tag[0] = str_replace(
                             $v[0],
@@ -536,7 +540,7 @@ class Class_cfFormMailer
                             ),
                             $tag[0]
                         );
-                        if ($v[3] == $params[$fieldName]) {
+                        if ($v[3] == $fieldValue) {
                             $tag[0] = str_replace(
                                 $v[0],
                                 str_replace(
@@ -552,14 +556,15 @@ class Class_cfFormMailer
                 }
                 // 複数行テキスト
             } elseif ($tag[1] === 'textarea') {
-                if ($params[$fieldName]) {
+                $fieldValue = $params[$fieldName] ?? '';
+                if ($fieldValue) {
                     $pat = $tag[0];
                     $rep = sprintf(
                         '<%s%s%s>%s</textarea>',
                         $tag[1],
                         $tag[2],
                         $tag[3],
-                        $this->encodeHTML($params[$fieldName])
+                        $this->encodeHTML($fieldValue)
                     );
                 }
             }
