@@ -909,8 +909,8 @@ class Class_cfFormMailer
             $mails = explode(',', $this->config('admin_mail'));
         } else {
             $dynamic_send_to = sessionv('dynamic_send_to');
-            $field_value = $this->form[$this->config('dynamic_send_to_field')];
-            if (empty($dynamic_send_to) || !$field_value) {
+            $field_value = $this->form[$this->config('dynamic_send_to_field')] ?? '';
+            if (empty($dynamic_send_to) || !$field_value || !isset($dynamic_send_to[$field_value])) {
                 $mails = explode(',', $this->config('admin_mail'));
             } else {
                 $mails = explode(',', $dynamic_send_to[$field_value]);
@@ -1337,7 +1337,7 @@ class Class_cfFormMailer
                 continue;
             }
 
-            $val = $params[$m[1]];
+            $val = $params[$m[1]] ?? '';
             if ($toFilter && $modifiers !== false) {
                 if ($val === '&nbsp;') {
                     $val = '';
@@ -1806,7 +1806,7 @@ class Class_cfFormMailer
             return '';
         }
         if (strpos($this->config('reply_to'), '+') === false) {
-            return $this->form[$this->config('reply_to')];
+            return $this->form[$this->config('reply_to')] ?? '';
         }
 
         $reply_to = array();
@@ -2265,7 +2265,7 @@ class Class_cfFormMailer
      */
     private function _def_sameas($value, $param, $field)
     {
-        if ($value == $this->form[$param]) {
+        if ($value == ($this->form[$param] ?? null)) {
             return true;
         }
 
@@ -2273,7 +2273,7 @@ class Class_cfFormMailer
         return sprintf(
             '&laquo; %s &raquo; と一致しません',
             $this->adaptEncoding(
-                $this->parsedForm[$param]['label']
+                $this->parsedForm[$param]['label'] ?? $param
             )
         );
     }
