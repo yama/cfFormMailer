@@ -865,21 +865,27 @@ class Class_cfFormMailer
 
     private function makeBody($tpl, $ph)
     {
-        return mb_convert_encoding(
-            $this->clearPlaceHolder(
-                $this->replacePlaceHolder(
-                    str_replace(
-                        array("\r\n", "\r"),
-                        "\n",
-                        $tpl
-                    ),
-                    $ph,
-                    $this->config('allow_html') ? '<br />' : "\n"
-                )
-            ),
-            $this->config('mail_charset'),
-            $this->config('charset')
+        $body = $this->clearPlaceHolder(
+            $this->replacePlaceHolder(
+                str_replace(
+                    array("\r\n", "\r"),
+                    "\n",
+                    $tpl
+                ),
+                $ph,
+                $this->config('allow_html') ? '<br />' : "\n"
+            )
         );
+
+        $mail_charset = $this->config('mail_charset');
+        $charset = $this->config('charset');
+
+        // mail_charsetが空の場合はエンコード変換をスキップ
+        if (empty($mail_charset) || empty($charset)) {
+            return $body;
+        }
+
+        return mb_convert_encoding($body, $mail_charset, $charset);
     }
     private function makePh($form, $adminmail)
     {
@@ -2510,46 +2516,46 @@ class Class_cfFormMailer
     }
 
     /**
-     * dateformat(format) : 日付のフォーマット （※PHP関数 strftime() と同様）
+     * dateformat(format) : 日付のフォーマット
+     *
+     * strftime形式（%Y-%m-%d等）とdate形式（Y-m-d等）の両方に対応
      */
     private function _f_dateformat($text, $param)
     {
-
         if (is_array($text)) {
             return array_map([$this, '_f_dateformat'], $text, $param);
         }
 
         $timestamp = strtotime($text);
-
-        // PHP 8.1未満の場合はstrftimeを使用
-        if (function_exists('strftime')) {
-            return strftime($param, $timestamp);
+        if ($timestamp === false) {
+            return $text;
         }
 
-        // PHP 8.1以降の代替実装
         $datetime = (new DateTime())->setTimestamp($timestamp);
 
-        // strftimeフォーマットをDateTimeフォーマットに変換
-        $format_map = [
-            '%Y' => 'Y',  // 4桁の年
-            '%y' => 'y',  // 2桁の年
-            '%m' => 'm',  // 月（01-12）
-            '%d' => 'd',  // 日（01-31）
-            '%H' => 'H',  // 時（00-23）
-            '%M' => 'i',  // 分（00-59）
-            '%S' => 's',  // 秒（00-59）
-            '%B' => 'F',  // 月の完全名
-            '%b' => 'M',  // 月の短縮名
-            '%A' => 'l',  // 曜日の完全名
-            '%a' => 'D',  // 曜日の短縮名
-            '%e' => 'j',  // 日（1-31）
-            '%I' => 'h',  // 12時間制の時（01-12）
-            '%p' => 'A',  // AM/PM
-            '%w' => 'w',  // 曜日（0-6）
-        ];
+        // strftimeフォーマット（%で始まる）が含まれている場合は変換
+        if (strpos($param, '%') !== false) {
+            $format_map = [
+                '%Y' => 'Y',  // 4桁の年
+                '%y' => 'y',  // 2桁の年
+                '%m' => 'm',  // 月（01-12）
+                '%d' => 'd',  // 日（01-31）
+                '%H' => 'H',  // 時（00-23）
+                '%M' => 'i',  // 分（00-59）
+                '%S' => 's',  // 秒（00-59）
+                '%B' => 'F',  // 月の完全名
+                '%b' => 'M',  // 月の短縮名
+                '%A' => 'l',  // 曜日の完全名
+                '%a' => 'D',  // 曜日の短縮名
+                '%e' => 'j',  // 日（1-31）
+                '%I' => 'h',  // 12時間制の時（01-12）
+                '%p' => 'A',  // AM/PM
+                '%w' => 'w',  // 曜日（0-6）
+            ];
+            $param = str_replace(array_keys($format_map), array_values($format_map), $param);
+        }
 
-        $date_format = str_replace(array_keys($format_map), array_values($format_map), $param);
-        return $datetime->format($date_format);
+        return $datetime->format($param);
     }
 
     /**
