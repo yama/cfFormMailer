@@ -40,24 +40,53 @@ trait MailMethodsTrait
     {
         $this->debugLog('管理者宛メール送信処理を開始');
 
-        $reply_to = $this->getAutoReplyAddress();
-
-        // 管理者宛メールの本文生成
+        // テンプレート読み込み
         $tmpl = $this->loadTemplate($this->config('tmpl_mail_admin'));
         if (!$tmpl) {
             $this->setError('メールテンプレートの読み込みに失敗しました');
             return false;
         }
 
-        $admin_addresses = $this->makeAdminAddress();
-        $admin_address = $admin_addresses[0];
-
-        // 管理者宛送信
+        // メーラー初期化
         evo()->loadExtension('MODxMailer');
         $pm = evo()->mail;
-        foreach ($admin_addresses as $v) {
+
+        // 宛先設定
+        $admin_addresses = $this->makeAdminAddress();
+        $admin_address = $admin_addresses[0];
+        $this->setAdminMailRecipients($pm, $admin_addresses);
+
+        // 送信者設定
+        $reply_to = $this->getAutoReplyAddress();
+        $this->setAdminMailSender($pm, $admin_address, $reply_to);
+
+        // 本文設定
+        $pm->Body = $this->makeBody($tmpl, $this->makePh($this->form, $admin_address));
+        $pm->Encoding = '7bit';
+
+        // 添付ファイル
+        $hasAttachment = $this->attachUploadedFiles($pm);
+
+        // デバッグログ
+        $this->logAdminMailDebugInfo($pm, $admin_addresses, $reply_to, $hasAttachment);
+
+        // 送信
+        return $this->executeMailSend($pm, 'Admin Mail Error', '管理者宛メール');
+    }
+
+    /**
+     * 管理者メールの宛先を設定
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @param array $adminAddresses 管理者アドレス配列
+     */
+    private function setAdminMailRecipients($pm, $adminAddresses)
+    {
+        foreach ($adminAddresses as $v) {
             $pm->AddAddress($v);
         }
+
+        // CC
         if ($this->config('admin_mail_cc')) {
             foreach (explode(',', $this->config('admin_mail_cc')) as $v) {
                 $v = trim($v);
@@ -66,6 +95,8 @@ trait MailMethodsTrait
                 }
             }
         }
+
+        // BCC
         if ($this->config('admin_mail_bcc')) {
             foreach (explode(',', $this->config('admin_mail_bcc')) as $v) {
                 $v = trim($v);
@@ -74,86 +105,124 @@ trait MailMethodsTrait
                 }
             }
         }
+    }
 
+    /**
+     * 管理者メールの送信者情報を設定
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @param string $adminAddress 管理者アドレス
+     * @param string $replyTo 返信先アドレス
+     */
+    private function setAdminMailSender($pm, $adminAddress, $replyTo)
+    {
         $pm->Subject = $this->config('admin_subject')
             ? evo()->parseText($this->config('admin_subject'), $this->form)
             : 'サイトから送信されたメール';
 
         $pm->setFrom(
-            $admin_address,
+            $adminAddress,
             $this->config('admin_name')
                 ? evo()->parseText($this->config('admin_name'), $this->form)
                 : ''
         );
-        if ($reply_to) {
-            $pm->addReplyTo($reply_to);
+
+        if ($replyTo) {
+            $pm->addReplyTo($replyTo);
         }
+
         $pm->Sender = $pm->From;
-        $pm->Body = $this->makeBody(
-            $tmpl,
-            ($this->makePh($this->form, $admin_address))
-        );
-        $pm->Encoding = '7bit';
+    }
 
-        // ユーザーからのファイル送信
-        $upload_flag = false;
+    /**
+     * アップロードファイルを添付
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @return bool 添付ファイルがあればtrue
+     */
+    private function attachUploadedFiles($pm)
+    {
         $uploaded = sessionv('_cf_uploaded');
-        if (is_array($uploaded) && count($uploaded)) {
-            foreach ($uploaded as $attach_file) {
-                if (!is_file($attach_file['path'])) {
-                    continue;
-                }
-                $pm->AddAttachment(
-                    $attach_file['path'],
-                    mb_convert_encoding(
-                        urldecode(basename($attach_file['path'])),
-                        $this->config('mail_charset'),
-                        $this->config('charset')
-                    )
-                );
-                if (!$upload_flag) {
-                    $upload_flag = true;
-                }
-            }
+        if (!is_array($uploaded) || count($uploaded) === 0) {
+            return false;
         }
 
-        // デバッグログ: メール送信情報
-        if ($this->config('debug_mode')) {
-            $debug_info = "管理者宛メール送信を試行\n";
-            $debug_info .= "宛先: " . implode(', ', $admin_addresses) . "\n";
-            if ($this->config('admin_mail_cc')) {
-                $debug_info .= "CC: " . $this->config('admin_mail_cc') . "\n";
+        $hasAttachment = false;
+        foreach ($uploaded as $attach_file) {
+            if (!is_file($attach_file['path'])) {
+                continue;
             }
-            if ($this->config('admin_mail_bcc')) {
-                $debug_info .= "BCC: " . $this->config('admin_mail_bcc') . "\n";
-            }
-            $debug_info .= "件名: " . $pm->Subject . "\n";
-            $debug_info .= "送信元: " . $pm->From . "\n";
-            if ($reply_to) {
-                $debug_info .= "Reply-To: " . $reply_to . "\n";
-            }
-            $debug_info .= "文字コード: " . ($this->config('mail_charset') ?: 'iso-2022-jp') . "\n";
-            $debug_info .= "HTMLメール: " . ($this->config('admin_ishtml') ? '有効' : '無効') . "\n";
-            if ($upload_flag) {
-                $debug_info .= "添付ファイル: あり\n";
-            }
-            $body_preview = mb_substr(strip_tags($pm->Body), 0, 100);
-            $debug_info .= "本文プレビュー: " . $body_preview . "...";
-            $this->debugLog($debug_info);
+            $pm->AddAttachment(
+                $attach_file['path'],
+                mb_convert_encoding(
+                    urldecode(basename($attach_file['path'])),
+                    $this->config('mail_charset'),
+                    $this->config('charset')
+                )
+            );
+            $hasAttachment = true;
         }
 
+        return $hasAttachment;
+    }
+
+    /**
+     * 管理者メールのデバッグ情報をログ出力
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @param array $adminAddresses 管理者アドレス配列
+     * @param string $replyTo 返信先アドレス
+     * @param bool $hasAttachment 添付ファイルの有無
+     */
+    private function logAdminMailDebugInfo($pm, $adminAddresses, $replyTo, $hasAttachment)
+    {
+        if (!$this->config('debug_mode')) {
+            return;
+        }
+
+        $debug_info = "管理者宛メール送信を試行\n";
+        $debug_info .= "宛先: " . implode(', ', $adminAddresses) . "\n";
+        if ($this->config('admin_mail_cc')) {
+            $debug_info .= "CC: " . $this->config('admin_mail_cc') . "\n";
+        }
+        if ($this->config('admin_mail_bcc')) {
+            $debug_info .= "BCC: " . $this->config('admin_mail_bcc') . "\n";
+        }
+        $debug_info .= "件名: " . $pm->Subject . "\n";
+        $debug_info .= "送信元: " . $pm->From . "\n";
+        if ($replyTo) {
+            $debug_info .= "Reply-To: " . $replyTo . "\n";
+        }
+        $debug_info .= "文字コード: " . ($this->config('mail_charset') ?: 'iso-2022-jp') . "\n";
+        $debug_info .= "HTMLメール: " . ($this->config('admin_ishtml') ? '有効' : '無効') . "\n";
+        if ($hasAttachment) {
+            $debug_info .= "添付ファイル: あり\n";
+        }
+        $body_preview = mb_substr(strip_tags($pm->Body), 0, 100);
+        $debug_info .= "本文プレビュー: " . $body_preview . "...";
+        $this->debugLog($debug_info);
+    }
+
+    /**
+     * メール送信を実行
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @param string $errorTitle エラー時のログタイトル
+     * @param string $mailType メールの種類（ログ用）
+     * @return bool 成功時true
+     */
+    private function executeMailSend($pm, $errorTitle, $mailType)
+    {
         $sent = $pm->Send();
         if (!$sent) {
             $errormsg = 'メール送信に失敗しました::' . $pm->ErrorInfo;
             $this->setError($errormsg);
-            $vars = evo()->htmlspecialchars(
-                var_export($pm, true)
-            );
-            $this->logEvent(1, 3, $errormsg . "\n" . $vars, 'Admin Mail Error');
+            $vars = evo()->htmlspecialchars(var_export($pm, true));
+            $this->logEvent(1, 3, $errormsg . "\n" . $vars, $errorTitle);
             return false;
         }
 
-        $this->debugLog('管理者宛メール送信に成功しました');
+        $this->debugLog($mailType . '送信に成功しました');
         return true;
     }
 
@@ -164,8 +233,9 @@ trait MailMethodsTrait
      */
     private function sendAutoReply()
     {
-        // 自動返信
         $reply_to = $this->getAutoReplyAddress();
+
+        // 自動返信が無効または返信先がない場合はスキップ
         if (!$this->config('auto_reply') || !$reply_to) {
             $this->debugLog('自動返信メールは無効、またはReply-Toアドレスが取得できませんでした');
             return true;
@@ -173,106 +243,130 @@ trait MailMethodsTrait
 
         $this->debugLog('自動返信メール送信処理を開始');
 
-        evo()->loadExtension('MODxMailer');
-        $pm = evo()->mail;
-        $pm->AddAddress($reply_to);
-        $pm->Subject = $this->config('reply_subject')
-            ? evo()->parseText($this->config('reply_subject'), $this->form)
-            : '自動返信メール';
-        $admin_addresses = $this->makeAdminAddress();
-        $admin_address = $admin_addresses[0];
-        $pm->setFrom(
-            $admin_address,
-            $this->config('reply_fromname')
-        );
-        // モバイル用のテンプレート切り替え
-        $pattern = '/(docomo\.ne\.jp|ezweb\.ne\.jp|softbank\.ne\.jp)$/';
-        if ($this->config('tmpl_mail_reply_mobile') && preg_match($pattern, $reply_to)) {
-            $template_filename = $this->config('tmpl_mail_reply_mobile');
-        } else {
-            $template_filename = $this->config('tmpl_mail_reply');
-        }
-        $tmpl_u = $this->loadTemplate($template_filename);
-        if (!$tmpl_u) {
+        // テンプレート読み込み
+        $templateFile = $this->getAutoReplyTemplate($reply_to);
+        $tmpl = $this->loadTemplate($templateFile);
+        if (!$tmpl) {
             $this->setError('メールテンプレートの読み込みに失敗しました');
             return false;
         }
 
+        // メーラー初期化
+        evo()->loadExtension('MODxMailer');
+        $pm = evo()->mail;
+
+        // 宛先・送信者設定
+        $admin_addresses = $this->makeAdminAddress();
+        $admin_address = $admin_addresses[0];
+        $this->setAutoReplySender($pm, $reply_to, $admin_address);
+
+        // 本文設定
         $pm->Sender = $pm->From;
-        $pm->Body = $this->makeBody(
-            $tmpl_u,
-            ($this->makePh($this->form, $admin_address))
-        );
+        $pm->Body = $this->makeBody($tmpl, $this->makePh($this->form, $admin_address));
         $pm->Encoding = '7bit';
-        // 添付ファイル処理
-        if ($this->config('attach_file') && is_file($this->config('attach_file'))) {
-            if (!$this->config('attach_file_name')) {
-                $pm->AddAttachment($this->config('attach_file'));
-            } else {
-                $pm->AddAttachment(
-                    $this->config('attach_file'),
-                    mb_convert_encoding(
-                        $this->config('attach_file_name'),
-                        $this->config('mail_charset'),
-                        $this->config('charset')
-                    )
-                );
-            }
+
+        // 添付ファイル
+        $hasConfiguredAttachment = $this->attachConfiguredFile($pm);
+        $hasUploadedAttachment = $this->attachUploadedFiles($pm);
+
+        // デバッグログ
+        $this->logAutoReplyDebugInfo($pm, $reply_to, $templateFile, $hasConfiguredAttachment || $hasUploadedAttachment);
+
+        // 送信
+        return $this->executeMailSend($pm, 'AutoReply Error', '自動返信メール');
+    }
+
+    /**
+     * 自動返信用テンプレートを取得（モバイル対応）
+     *
+     * @param string $replyTo 返信先アドレス
+     * @return string テンプレート名
+     */
+    private function getAutoReplyTemplate($replyTo)
+    {
+        $mobilePattern = '/(docomo\.ne\.jp|ezweb\.ne\.jp|softbank\.ne\.jp)$/';
+
+        if ($this->config('tmpl_mail_reply_mobile') && preg_match($mobilePattern, $replyTo)) {
+            return $this->config('tmpl_mail_reply_mobile');
         }
 
-        $uploaded = sessionv('_cf_uploaded');
-        $has_uploaded_attachment = false;
-        if (is_array($uploaded)) {
-            foreach ($uploaded as $attach_file) {
-                if (!is_file($attach_file['path'])) {
-                    continue;
-                }
-                $pm->AddAttachment(
-                    $attach_file['path'],
-                    mb_convert_encoding(
-                        urldecode(basename($attach_file['path'])),
-                        $this->config('mail_charset'),
-                        $this->config('charset')
-                    )
-                );
-                $has_uploaded_attachment = true;
-            }
-        }
+        return $this->config('tmpl_mail_reply');
+    }
 
-        // デバッグログ: メール送信情報
-        if ($this->config('debug_mode')) {
-            $debug_info = "自動返信メール送信を試行\n";
-            $debug_info .= "宛先: " . $reply_to . "\n";
-            $debug_info .= "件名: " . $pm->Subject . "\n";
-            $debug_info .= "送信元: " . $pm->From . "\n";
-            if ($this->config('reply_fromname')) {
-                $debug_info .= "送信者名: " . $this->config('reply_fromname') . "\n";
-            }
-            $debug_info .= "文字コード: " . ($this->config('mail_charset') ?: 'iso-2022-jp') . "\n";
-            $debug_info .= "HTMLメール: " . ($this->config('reply_ishtml') ? '有効' : '無効') . "\n";
-            $debug_info .= "テンプレート: " . $template_filename . "\n";
-            if ($this->config('attach_file') || $has_uploaded_attachment) {
-                $debug_info .= "添付ファイル: あり\n";
-            }
-            $body_preview = mb_substr(strip_tags($pm->Body), 0, 100);
-            $debug_info .= "本文プレビュー: " . $body_preview . "...";
-            $this->debugLog($debug_info);
-        }
+    /**
+     * 自動返信メールの送信者情報を設定
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @param string $replyTo 返信先アドレス
+     * @param string $adminAddress 管理者アドレス
+     */
+    private function setAutoReplySender($pm, $replyTo, $adminAddress)
+    {
+        $pm->AddAddress($replyTo);
 
-        $sent = $pm->Send();
+        $pm->Subject = $this->config('reply_subject')
+            ? evo()->parseText($this->config('reply_subject'), $this->form)
+            : '自動返信メール';
 
-        if (!$sent) {
-            $errormsg = 'メール送信に失敗しました::' . $pm->ErrorInfo;
-            $this->setError($errormsg);
-            $vars = evo()->htmlspecialchars(
-                var_export($pm, true)
-            );
-            $this->logEvent(1, 3, $errormsg . "\n" . $vars, 'AutoReply Error');
+        $pm->setFrom($adminAddress, $this->config('reply_fromname'));
+    }
+
+    /**
+     * 設定ファイルで指定された添付ファイルを追加
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @return bool 添付ファイルがあればtrue
+     */
+    private function attachConfiguredFile($pm)
+    {
+        $attachFile = $this->config('attach_file');
+        if (!$attachFile || !is_file($attachFile)) {
             return false;
         }
 
-        $this->debugLog('自動返信メール送信に成功しました');
+        $attachName = $this->config('attach_file_name');
+        if (!$attachName) {
+            $pm->AddAttachment($attachFile);
+        } else {
+            $pm->AddAttachment(
+                $attachFile,
+                mb_convert_encoding($attachName, $this->config('mail_charset'), $this->config('charset'))
+            );
+        }
+
         return true;
+    }
+
+    /**
+     * 自動返信メールのデバッグ情報をログ出力
+     *
+     * @param object $pm PHPMailerインスタンス
+     * @param string $replyTo 返信先アドレス
+     * @param string $templateFile テンプレートファイル名
+     * @param bool $hasAttachment 添付ファイルの有無
+     */
+    private function logAutoReplyDebugInfo($pm, $replyTo, $templateFile, $hasAttachment)
+    {
+        if (!$this->config('debug_mode')) {
+            return;
+        }
+
+        $debug_info = "自動返信メール送信を試行\n";
+        $debug_info .= "宛先: " . $replyTo . "\n";
+        $debug_info .= "件名: " . $pm->Subject . "\n";
+        $debug_info .= "送信元: " . $pm->From . "\n";
+        if ($this->config('reply_fromname')) {
+            $debug_info .= "送信者名: " . $this->config('reply_fromname') . "\n";
+        }
+        $debug_info .= "文字コード: " . ($this->config('mail_charset') ?: 'iso-2022-jp') . "\n";
+        $debug_info .= "HTMLメール: " . ($this->config('reply_ishtml') ? '有効' : '無効') . "\n";
+        $debug_info .= "テンプレート: " . $templateFile . "\n";
+        if ($hasAttachment) {
+            $debug_info .= "添付ファイル: あり\n";
+        }
+        $body_preview = mb_substr(strip_tags($pm->Body), 0, 100);
+        $debug_info .= "本文プレビュー: " . $body_preview . "...";
+        $this->debugLog($debug_info);
     }
 
     /**

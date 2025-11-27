@@ -55,66 +55,117 @@ trait FormParserTrait
     /**
      * <form></form>タグ内を解析し、検証メソッド等を取得する
      *
-     * @access private
-     * @param  string $html 解析対象のHTML文書
-     * @return array|boolean 解析失敗の場合は false
+     * @param string $html 解析対象のHTML文書
+     * @return array|false 解析失敗の場合は false
      */
     private function parseForm($html)
     {
-        // print_r($html);
         $html = $this->extractForm($html, '');
         if ($html === false) {
             return false;
         }
 
+        $formElements = $this->extractFormElements($html);
+        return $this->buildFieldDefinitions($formElements, $html);
+    }
+
+    /**
+     * フォーム要素（input/textarea/select）を抽出
+     *
+     * @param string $html HTML文書
+     * @return array マッチした要素の配列
+     */
+    private function extractFormElements($html)
+    {
         preg_match_all(
             "/<(input|textarea|select).*?name=([\"'])(.+?)\\2.*?>/is",
             $html,
             $match,
             PREG_SET_ORDER
         );
+        return $match;
+    }
 
+    /**
+     * 抽出した要素からフィールド定義を構築
+     *
+     * @param array $elements フォーム要素の配列
+     * @param string $html 元のHTML（ラベル検索用）
+     * @return array フィールド定義の配列
+     */
+    private function buildFieldDefinitions($elements, $html)
+    {
         $methods = array();
-        foreach ($match as $v) {
-            // 検証メソッドを取得
-            if (preg_match("/valid=([\"'])(.+?)\\1/", $v[0], $v_match)) {
-                $parts = explode(':', $v_match[2]);
-                $required = $parts[0] ?? '';
-                $method = $parts[1] ?? '';
-                $param = $parts[2] ?? '';
-            } else {
-                $required = $method = $param = '';
+
+        foreach ($elements as $element) {
+            $fieldName = str_replace('[]', '', $element[3]);
+
+            // 既に定義済みならスキップ
+            if (isset($methods[$fieldName])) {
+                continue;
             }
 
-            // 項目名の取得
-            if ($param) {
-                $label = $param;
-            } elseif (preg_match("/id=([\"'])(.+?)\\1/", $v[0], $l_match)) {
-                if (preg_match(
-                    "@<label for=([\"']){$l_match[2]}\\1.*>(.+?)</label>@",
-                    $html,
-                    $match_label
-                )) {
-                    $label = $match_label[2];
-                } else {
-                    $label = '';
-                }
-            } else {
-                $label = '';
-            }
+            $validationInfo = $this->parseValidationAttribute($element[0]);
+            $label = $this->resolveFieldLabel($element, $validationInfo['param'], $html);
 
-            $fieldName = str_replace('[]', '', $v[3]); // 項目名を取得
-            if (!isset($methods[$fieldName])) {
-                $methods[$fieldName] = array(
-                    'type'     => $this->_get_input_type($v),
-                    'required' => $required,
-                    'method'   => $method,
-                    'param'    => $param,
-                    'label'    => $label
-                );
-            }
+            $methods[$fieldName] = array(
+                'type'     => $this->_get_input_type($element),
+                'required' => $validationInfo['required'],
+                'method'   => $validationInfo['method'],
+                'param'    => $validationInfo['param'],
+                'label'    => $label
+            );
         }
+
         return $methods;
+    }
+
+    /**
+     * valid属性をパースして検証情報を取得
+     *
+     * @param string $elementHtml 要素のHTML
+     * @return array required, method, param を含む配列
+     */
+    private function parseValidationAttribute($elementHtml)
+    {
+        if (!preg_match("/valid=([\"'])(.+?)\\1/", $elementHtml, $match)) {
+            return array('required' => '', 'method' => '', 'param' => '');
+        }
+
+        $parts = explode(':', $match[2]);
+        return array(
+            'required' => $parts[0] ?? '',
+            'method'   => $parts[1] ?? '',
+            'param'    => $parts[2] ?? ''
+        );
+    }
+
+    /**
+     * フィールドのラベルを解決
+     *
+     * @param array $element フォーム要素
+     * @param string $paramLabel パラメータで指定されたラベル
+     * @param string $html 元のHTML
+     * @return string ラベル文字列
+     */
+    private function resolveFieldLabel($element, $paramLabel, $html)
+    {
+        // パラメータで指定されていればそれを使用
+        if ($paramLabel) {
+            return $paramLabel;
+        }
+
+        // id属性からlabel要素を検索
+        if (!preg_match("/id=([\"'])(.+?)\\1/", $element[0], $idMatch)) {
+            return '';
+        }
+
+        $pattern = sprintf("@<label for=([\"'])%s\\1.*>(.+?)</label>@", $idMatch[2]);
+        if (preg_match($pattern, $html, $labelMatch)) {
+            return $labelMatch[2];
+        }
+
+        return '';
     }
 
     /**
