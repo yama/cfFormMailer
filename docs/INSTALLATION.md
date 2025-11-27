@@ -430,7 +430,7 @@ cp -r new_version/* /assets/snippets/cfFormMailer/
 
 **解決策**:
 
-v1.7.0では部分対応済みです。
+v1.7.0では対応済みです。
 
 一時的な対処:
 
