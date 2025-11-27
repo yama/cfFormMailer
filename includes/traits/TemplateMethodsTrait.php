@@ -117,72 +117,122 @@ trait TemplateMethodsTrait
             return $text;
         }
 
-        $toFilter = true;
-        //旧バージョン用
-        if (isset(evo()->config['output_filter']) && evo()->config['output_filter'] == 0) {
-            $toFilter = false;
+        $toFilter = $this->isFilterEnabled();
+        if ($toFilter) {
+            evo()->loadExtension('PHx') or die('Could not load PHx class.');
         }
 
-        if ($toFilter) evo()->loadExtension('PHx') or die('Could not load PHx class.');
-
-        // 基本プレースホルダ
         $replaceKeys = array_keys($params);
         foreach ($match as $m) {
-            if ($toFilter && strpos($m[1], ':') !== false) {
-                $parts = explode(':', $m[1], 2);
-                $m[1] = $parts[0];
-                $modifiers = $parts[1] ?? false;
-            } else {
-                $modifiers = false;
-            }
-
-            if (!in_array($m[1], $replaceKeys)) {
-                continue;
-            }
-
-            $val = $params[$m[1]] ?? '';
-            if ($toFilter && $modifiers !== false) {
-                if ($val === '&nbsp;') {
-                    $val = '';
-                }
-                $val = evo()->filter->phxFilter($m[1], $val, $modifiers);
-                if ($val === '') {
-                    $val = '&nbsp;';
-                }
-            }
-            // テキストフィルターの処理
-            $fType = $m[3] ?? '';
-            if (empty($fType)) {
-                $text = str_replace(
-                    $m[0],
-                    is_array($val) ? implode($join, $val) : $val,
-                    $text
-                );
-                continue;
-            }
-            if (is_callable(array($this, '_f_' . $fType))) {
-                $funcName = '_f_' . $fType;
-                $fParam = $m[5] ?? '';
-                $text = str_replace(
-                    $m[0],
-                    $this->$funcName($val, $fParam),
-                    $text
-                );
-                continue;
-            }
-            if (is_callable('_filter_' . $fType)) {
-                $funcName = '_filter_' . $fType;
-                $fParam = $m[5] ?? '';
-                $text = str_replace(
-                    $m[0],
-                    $funcName($val, $fParam),
-                    $text
-                );
-                continue;
-            }
-            $text = str_replace($m[0], '', $text); // フィルター無し
+            $text = $this->processPlaceholderMatch($text, $m, $params, $replaceKeys, $toFilter, $join);
         }
         return $text;
+    }
+
+    /**
+     * PHxフィルターが有効かどうかを判定
+     *
+     * @return bool
+     */
+    private function isFilterEnabled()
+    {
+        if (isset(evo()->config['output_filter']) && evo()->config['output_filter'] == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 個別のプレースホルダマッチを処理
+     *
+     * @param string $text テキスト
+     * @param array $m マッチ結果
+     * @param array $params パラメータ
+     * @param array $replaceKeys 置換対象キー一覧
+     * @param bool $toFilter フィルター有効フラグ
+     * @param string $join 配列連結文字列
+     * @return string 処理後のテキスト
+     */
+    private function processPlaceholderMatch($text, $m, $params, $replaceKeys, $toFilter, $join)
+    {
+        // PHxモディファイア抽出
+        $modifiers = false;
+        $placeholderName = $m[1];
+        if ($toFilter && strpos($m[1], ':') !== false) {
+            $parts = explode(':', $m[1], 2);
+            $placeholderName = $parts[0];
+            $modifiers = $parts[1] ?? false;
+        }
+
+        if (!in_array($placeholderName, $replaceKeys)) {
+            return $text;
+        }
+
+        $val = $params[$placeholderName] ?? '';
+
+        // PHxモディファイア適用
+        if ($toFilter && $modifiers !== false) {
+            $val = $this->applyPhxModifiers($placeholderName, $val, $modifiers);
+        }
+
+        // テキストフィルター適用
+        $filterType = $m[3] ?? '';
+        $filterParam = $m[5] ?? '';
+        $replacement = $this->applyTextFilter($val, $filterType, $filterParam, $join);
+
+        return str_replace($m[0], $replacement, $text);
+    }
+
+    /**
+     * PHxモディファイアを適用
+     *
+     * @param string $name プレースホルダ名
+     * @param mixed $val 値
+     * @param string $modifiers モディファイア文字列
+     * @return mixed 処理後の値
+     */
+    private function applyPhxModifiers($name, $val, $modifiers)
+    {
+        if ($val === '&nbsp;') {
+            $val = '';
+        }
+        $val = evo()->filter->phxFilter($name, $val, $modifiers);
+        if ($val === '') {
+            $val = '&nbsp;';
+        }
+        return $val;
+    }
+
+    /**
+     * テキストフィルターを適用
+     *
+     * @param mixed $val 値
+     * @param string $filterType フィルタータイプ
+     * @param string $filterParam フィルターパラメータ
+     * @param string $join 配列連結文字列
+     * @return string 処理後の値
+     */
+    private function applyTextFilter($val, $filterType, $filterParam, $join)
+    {
+        // フィルタータイプが空の場合は値をそのまま返す
+        if (empty($filterType)) {
+            return is_array($val) ? implode($join, $val) : $val;
+        }
+
+        // クラス内フィルターメソッド (_f_*)
+        $methodName = '_f_' . $filterType;
+        if (is_callable(array($this, $methodName))) {
+            return $this->$methodName($val, $filterParam);
+        }
+
+        // グローバルフィルター関数 (_filter_*)
+        $funcName = '_filter_' . $filterType;
+        if (is_callable($funcName)) {
+            return $funcName($val, $filterParam);
+        }
+
+        // フィルターが見つからない場合は空文字
+        return '';
     }
 
     /**

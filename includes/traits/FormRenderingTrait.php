@@ -29,135 +29,239 @@ trait FormRenderingTrait
      */
     private function restoreForm($html, $params)
     {
-
         $match = array();
         preg_match_all("@<(input|textarea|select)(.+?)([\s/]*?)>(.*?</\\1>)?@uism", $html, $match, PREG_SET_ORDER);
 
-        // タグごとに処理
         foreach ($match as $tag) {
-            $m_type = array();
-            $m_name = array();
-            $m_value = array();
-            preg_match("/type=([\"'])(.+?)\\1/i", $tag[0], $m_type);
-            preg_match("/name=([\"'])(.+?)\\1/i", $tag[0], $m_name);
-            preg_match("/value=([\"'])(.*?)\\1/i", $tag[0], $m_value);
-
-            if (!isset($m_name[2]) || !isset($m_type[2])) {
-                continue;
-            }
-
-            $fieldName = str_replace('[]', '', $m_name[2]);
-            // 復元処理しないタグ
-            if ($fieldName === '_mode') {
-                continue;
-            }
-
-            switch ($m_type[2]) {
-                // 復元処理しないタグ
-                case 'submit';
-                case 'image';
-                case 'file';
-                case 'button';
-                case 'reset';
-                case 'hidden';
-                    continue 2;
-                case 'checkbox';
-                case 'radio';
-                    $fieldType = $m_type[2];
-                    break;
-                default:
-                    $fieldType = 'text';
-            }
-
-            // テキストボックス
-            if ($tag[1] === 'input' && $fieldType === 'text') {
-                $fieldValue = $params[$fieldName] ?? '';
-                if (count($m_value) > 1) {
-                    $pat = $m_value[0];
-                    $rep = 'value="' . $this->encodeHTML($fieldValue) . '"';
-                } else {
-                    $pat = $tag[2];
-                    $rep = $tag[2] . ' value="' . $this->encodeHTML($fieldValue) . '"';
-                }
-                // チェックボックス
-            } elseif ($tag[1] === 'input' && $fieldType === 'checkbox') {
-                $fieldValue = $params[$fieldName] ?? null;
-                if (isset($m_value[2]) && ($m_value[2] == $fieldValue || (is_array($fieldValue) && in_array($m_value[2], $fieldValue)))) {
-                    $pat = $tag[2];
-                    $rep = $tag[2] . ' checked="checked"';
-                }
-                // ラジオボタン
-            } elseif ($tag[1] === 'input' && $fieldType === 'radio') {
-                $fieldValue = $params[$fieldName] ?? null;
-                if (isset($m_value[2]) && $m_value[2] == $fieldValue) {
-                    $pat = $tag[2];
-                    $rep = $tag[2] . ' checked="checked"';
-                }
-                // プルダウンリスト
-            } elseif ($tag[1] === 'select') {
-                $pat = '';
-                $rep = '';
-                $tag_opt = array();
-                preg_match_all(
-                    "/<option(.*?)value=(['\"])(.*?)\\2(.*?>)/uism",
-                    $tag[4],
-                    $tag_opt,
-                    PREG_SET_ORDER
-                );
-                if (count($tag_opt) > 1) {
-                    $old = $tag[0];
-                    $fieldValue = $params[$fieldName] ?? null;
-                    foreach ($tag_opt as $v) {
-                        $tag[0] = str_replace(
-                            $v[0],
-                            preg_replace(
-                                "/selected(=(['\"])selected\\2)?/uism",
-                                '',
-                                $v[0]
-                            ),
-                            $tag[0]
-                        );
-                        if ($v[3] == $fieldValue) {
-                            $tag[0] = str_replace(
-                                $v[0],
-                                str_replace(
-                                    $v[4],
-                                    ' selected="selected"' . $v[4],
-                                    $v[0]
-                                ),
-                                $tag[0]
-                            );
-                        }
-                    }
-                    $html = str_replace($old, $tag[0], $html);
-                }
-                // 複数行テキスト
-            } elseif ($tag[1] === 'textarea') {
-                $fieldValue = $params[$fieldName] ?? '';
-                if ($fieldValue) {
-                    $pat = $tag[0];
-                    $rep = sprintf(
-                        '<%s%s%s>%s</textarea>',
-                        $tag[1],
-                        $tag[2],
-                        $tag[3],
-                        $this->encodeHTML($fieldValue)
-                    );
-                }
-            }
-
-            // HTMLタグのみを置換
-            if (!$rep || !$pat) {
-                continue;
-            }
-            $tag_new = str_replace($pat, $rep, $tag[0]);
-            // HTML全文を置換
-            if (trim($tag_new) === '') {
-                continue;
-            }
-            $html = str_replace($tag[0], $tag_new, $html);
+            $html = $this->restoreFormTag($html, $tag, $params);
         }
         return $html;
+    }
+
+    /**
+     * 個別のフォームタグを復元
+     *
+     * @param string $html HTML
+     * @param array $tag マッチしたタグ情報
+     * @param array $params フォームデータ
+     * @return string 処理後のHTML
+     */
+    private function restoreFormTag($html, $tag, $params)
+    {
+        $m_type = array();
+        $m_name = array();
+        $m_value = array();
+        preg_match("/type=([\"'])(.+?)\\1/i", $tag[0], $m_type);
+        preg_match("/name=([\"'])(.+?)\\1/i", $tag[0], $m_name);
+        preg_match("/value=([\"'])(.*?)\\1/i", $tag[0], $m_value);
+
+        if (!isset($m_name[2]) || !isset($m_type[2])) {
+            return $html;
+        }
+
+        $fieldName = str_replace('[]', '', $m_name[2]);
+        if ($fieldName === '_mode') {
+            return $html;
+        }
+
+        $fieldType = $this->determineFieldType($m_type[2]);
+        if ($fieldType === null) {
+            return $html;
+        }
+
+        $fieldValue = $params[$fieldName] ?? '';
+
+        switch ($tag[1]) {
+            case 'input':
+                return $this->restoreInputTag($html, $tag, $fieldType, $fieldValue, $m_value);
+            case 'select':
+                return $this->restoreSelectTag($html, $tag, $fieldValue);
+            case 'textarea':
+                return $this->restoreTextareaTag($html, $tag, $fieldValue);
+            default:
+                return $html;
+        }
+    }
+
+    /**
+     * フィールドタイプを判定
+     *
+     * @param string $type input type属性値
+     * @return string|null フィールドタイプ (text/checkbox/radio) または null (復元しないタイプ)
+     */
+    private function determineFieldType($type)
+    {
+        $skipTypes = ['submit', 'image', 'file', 'button', 'reset', 'hidden'];
+        if (in_array($type, $skipTypes, true)) {
+            return null;
+        }
+
+        if ($type === 'checkbox' || $type === 'radio') {
+            return $type;
+        }
+
+        return 'text';
+    }
+
+    /**
+     * input要素の値を復元
+     *
+     * @param string $html HTML
+     * @param array $tag タグ情報
+     * @param string $fieldType フィールドタイプ
+     * @param mixed $fieldValue フィールド値
+     * @param array $m_value value属性のマッチ結果
+     * @return string 処理後のHTML
+     */
+    private function restoreInputTag($html, $tag, $fieldType, $fieldValue, $m_value)
+    {
+        if ($fieldType === 'text') {
+            return $this->restoreTextInput($html, $tag, $fieldValue, $m_value);
+        }
+
+        if ($fieldType === 'checkbox') {
+            return $this->restoreCheckbox($html, $tag, $fieldValue, $m_value);
+        }
+
+        if ($fieldType === 'radio') {
+            return $this->restoreRadio($html, $tag, $fieldValue, $m_value);
+        }
+
+        return $html;
+    }
+
+    /**
+     * テキストinputの値を復元
+     *
+     * @param string $html HTML
+     * @param array $tag タグ情報
+     * @param mixed $fieldValue フィールド値
+     * @param array $m_value value属性のマッチ結果
+     * @return string 処理後のHTML
+     */
+    private function restoreTextInput($html, $tag, $fieldValue, $m_value)
+    {
+        if (count($m_value) > 1) {
+            $pat = $m_value[0];
+            $rep = 'value="' . $this->encodeHTML($fieldValue) . '"';
+        } else {
+            $pat = $tag[2];
+            $rep = $tag[2] . ' value="' . $this->encodeHTML($fieldValue) . '"';
+        }
+
+        $tag_new = str_replace($pat, $rep, $tag[0]);
+        return str_replace($tag[0], $tag_new, $html);
+    }
+
+    /**
+     * チェックボックスの状態を復元
+     *
+     * @param string $html HTML
+     * @param array $tag タグ情報
+     * @param mixed $fieldValue フィールド値
+     * @param array $m_value value属性のマッチ結果
+     * @return string 処理後のHTML
+     */
+    private function restoreCheckbox($html, $tag, $fieldValue, $m_value)
+    {
+        if (!isset($m_value[2])) {
+            return $html;
+        }
+
+        $isChecked = ($m_value[2] == $fieldValue) ||
+                     (is_array($fieldValue) && in_array($m_value[2], $fieldValue));
+
+        if (!$isChecked) {
+            return $html;
+        }
+
+        $tag_new = str_replace($tag[2], $tag[2] . ' checked="checked"', $tag[0]);
+        return str_replace($tag[0], $tag_new, $html);
+    }
+
+    /**
+     * ラジオボタンの状態を復元
+     *
+     * @param string $html HTML
+     * @param array $tag タグ情報
+     * @param mixed $fieldValue フィールド値
+     * @param array $m_value value属性のマッチ結果
+     * @return string 処理後のHTML
+     */
+    private function restoreRadio($html, $tag, $fieldValue, $m_value)
+    {
+        if (!isset($m_value[2]) || $m_value[2] != $fieldValue) {
+            return $html;
+        }
+
+        $tag_new = str_replace($tag[2], $tag[2] . ' checked="checked"', $tag[0]);
+        return str_replace($tag[0], $tag_new, $html);
+    }
+
+    /**
+     * select要素の値を復元
+     *
+     * @param string $html HTML
+     * @param array $tag タグ情報
+     * @param mixed $fieldValue フィールド値
+     * @return string 処理後のHTML
+     */
+    private function restoreSelectTag($html, $tag, $fieldValue)
+    {
+        $tag_opt = array();
+        preg_match_all(
+            "/<option(.*?)value=(['\"])(.*?)\\2(.*?>)/uism",
+            $tag[4],
+            $tag_opt,
+            PREG_SET_ORDER
+        );
+
+        if (count($tag_opt) <= 1) {
+            return $html;
+        }
+
+        $old = $tag[0];
+        foreach ($tag_opt as $v) {
+            // 既存のselected属性を削除
+            $tag[0] = str_replace(
+                $v[0],
+                preg_replace("/selected(=(['\"])selected\\2)?/uism", '', $v[0]),
+                $tag[0]
+            );
+            // 一致する値にselected属性を追加
+            if ($v[3] == $fieldValue) {
+                $tag[0] = str_replace(
+                    $v[0],
+                    str_replace($v[4], ' selected="selected"' . $v[4], $v[0]),
+                    $tag[0]
+                );
+            }
+        }
+        return str_replace($old, $tag[0], $html);
+    }
+
+    /**
+     * textarea要素の値を復元
+     *
+     * @param string $html HTML
+     * @param array $tag タグ情報
+     * @param mixed $fieldValue フィールド値
+     * @return string 処理後のHTML
+     */
+    private function restoreTextareaTag($html, $tag, $fieldValue)
+    {
+        if (!$fieldValue) {
+            return $html;
+        }
+
+        $rep = sprintf(
+            '<%s%s%s>%s</textarea>',
+            $tag[1],
+            $tag[2],
+            $tag[3],
+            $this->encodeHTML($fieldValue)
+        );
+        return str_replace($tag[0], $rep, $html);
     }
 
     /**
@@ -173,35 +277,75 @@ trait FormRenderingTrait
         if (!is_array($errors)) {
             return $html;
         }
+
         preg_match_all("@<iferror\.?([^>]+?)?>(.+?)</iferror>@uism", $html, $match, PREG_SET_ORDER);
         if (!count($match)) {
             return $html;
         }
+
         foreach ($match as $tag) {
-            if (empty($tag[1])) {
-                // エラー全体の処理
-                if (count($errors)) {
-                    $html = str_replace($tag[0], $tag[2], $html);
-                    // pr($html);exit;
-                }
-                continue;
+            $html = $this->processErrorTag($html, $tag, $errors);
+        }
+        return $html;
+    }
+
+    /**
+     * 個別のiferrorタグを処理
+     *
+     * @param string $html HTML
+     * @param array $tag マッチしたタグ情報
+     * @param array $errors エラー情報
+     * @return string 処理後のHTML
+     */
+    private function processErrorTag($html, $tag, $errors)
+    {
+        // フィールド指定なし: エラー全体の処理
+        if (empty($tag[1])) {
+            if (count($errors)) {
+                return str_replace($tag[0], $tag[2], $html);
             }
-            // グルーピングされたタグの処理
-            if (preg_match("/^\((.+?)\)$/", $tag[1], $g_match)) {
-                $groups = explode(',', $g_match[1]);
-                $isErr = 0;
-                foreach ($groups as $group) {
-                    $isErr = $errors['error.' . strtr($group, array(' ' => ''))] ? 1 : $isErr;
-                }
-                if ($isErr) {
-                    $html = str_replace($tag[0], $tag[2], $html);
-                }
-                continue;
-            }
-            if (isset($errors['error.' . $tag[1]])) {
-                $html = str_replace($tag[0], $tag[2], $html);
+            return $html;
+        }
+
+        // グルーピングされたタグの処理 (例: iferror.(field1,field2))
+        if (preg_match("/^\((.+?)\)$/", $tag[1], $g_match)) {
+            return $this->processGroupedErrorTag($html, $tag, $errors, $g_match[1]);
+        }
+
+        // 単一フィールドのエラー処理
+        if (isset($errors['error.' . $tag[1]])) {
+            return str_replace($tag[0], $tag[2], $html);
+        }
+
+        return $html;
+    }
+
+    /**
+     * グループ化されたエラータグを処理
+     *
+     * @param string $html HTML
+     * @param array $tag マッチしたタグ情報
+     * @param array $errors エラー情報
+     * @param string $groupStr グループ文字列 (カンマ区切り)
+     * @return string 処理後のHTML
+     */
+    private function processGroupedErrorTag($html, $tag, $errors, $groupStr)
+    {
+        $groups = explode(',', $groupStr);
+        $hasError = false;
+
+        foreach ($groups as $group) {
+            $fieldName = 'error.' . strtr($group, array(' ' => ''));
+            if (!empty($errors[$fieldName])) {
+                $hasError = true;
+                break;
             }
         }
+
+        if ($hasError) {
+            return str_replace($tag[0], $tag[2], $html);
+        }
+
         return $html;
     }
 
