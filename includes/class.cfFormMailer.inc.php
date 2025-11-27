@@ -2571,19 +2571,3 @@ class Class_cfFormMailer
         return sprintf($param, $text);
     }
 }
-
-if (!function_exists('evo')) {
-    function evo()
-    {
-        global $modx;
-        return $modx;
-    }
-}
-
-if (!function_exists('db')) {
-    function db()
-    {
-        global $modx;
-        return $modx->db;
-    }
-}
