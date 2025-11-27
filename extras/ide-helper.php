@@ -258,13 +258,29 @@ class DocumentParser
      * @return bool
      */
     public function isFrontEnd() {}
+
+    /**
+     * イベントをログに記録
+     *
+     * @param int $evtid イベントID
+     * @param int $type タイプ (1=情報, 2=警告, 3=エラー)
+     * @param string $msg メッセージ
+     * @param string $source ソース
+     * @return void
+     */
+    public function logEvent($evtid, $type, $msg, $source = '') {}
 }
 
 /**
  * MODX Database API
+ *
+ * @property array $config データベース設定配列
  */
 class DBAPI
 {
+    /** @var array */
+    public $config = [];
+
     /**
      * クエリを実行
      *
@@ -425,6 +441,12 @@ class MODxMailer
     public $FromName;
 
     /** @var string */
+    public $Sender;
+
+    /** @var string */
+    public $ErrorInfo;
+
+    /** @var string */
     public $Subject;
 
     /** @var string */
@@ -521,6 +543,16 @@ class MODxMailer
      * @return string
      */
     public function getError() {}
+
+    /**
+     * 送信元を設定
+     *
+     * @param string $address メールアドレス
+     * @param string $name 名前
+     * @param bool $auto 自動設定フラグ
+     * @return bool
+     */
+    public function setFrom($address, $name = '', $auto = true) {}
 }
 
 /**
